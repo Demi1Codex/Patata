@@ -44,4 +44,8 @@ Cada página tiene enlaces para navegar entre las secciones principal, secundari
 
 ## Uso
 
-Abre `Index.html` en tu navegador para comenzar a
+se usa esta pagina para navegar entre los pensamientos de Demi1Codex
+
+## Contenido General
+
+usualmente este sitio se renovara constantemente para ejemplificar pensamientos, cada vez mas habra imagenes y textos de lo que se deberia de hacer
