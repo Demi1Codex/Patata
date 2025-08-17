@@ -1,10 +1,12 @@
-body{
-  background:linear-gradient(180deg,  rgb(0, 255, 130), rgb(200,0,100) );
-  font-family: 'Comic Sans MS', Courier, Times New Roman;
-  color: rgb(150,0,255);
-  text-shadow: 0px 3px 5px rgb(45,0,100) ;
-  text-align: left;
-  font-size: 28px;;
+body {
+    background:
+    url('assets/codingBG.png') center center / cover no-repeat fixed,
+    linear-gradient(180deg, rgb(0, 255, 130), rgb(200, 0, 100));
+    font-family: 'FuenteAlt', Courier, Times New Roman;
+    color: rgb(150,0,255);
+    text-shadow: 0px 3px 5px rgb(45,0,100) ;
+    text-align: left;
+    font-size: 28px;
 }
 h1{
   font-size: 55px;
@@ -13,7 +15,7 @@ h1{
 h2{
   color: blue;
   text-shadow: 0px 8px 5px rgb(0,0,0);
-  font-family: 'Consolas', Courier, Monospace;
+  font-family: 'MiFuente', Courier, Monospace;
   text-align: center;
   font-size: 30px;
 }
@@ -73,4 +75,13 @@ iframe, .playing{
   height: 600px;
   border: none;
   margin: 20px;
+}
+
+@font-face {
+  font-family: 'MiFuente';
+  src: url('assets/MiFuente.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'FuenteAlt';
+  src: url('assets/FuenteAlt.ttf') format('truetype');
 }
