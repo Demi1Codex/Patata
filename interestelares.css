@@ -85,3 +85,15 @@ iframe, .playing{
   font-family: 'FuenteAlt';
   src: url('assets/FuenteAlt.ttf') format('truetype');
 }
+
+button{
+  color: rgb(255,0,90);
+  font-family: 'FuenteAlt', Courier, Times New Roman;
+}
+
+.repro{
+  position: relative ;
+
+  left: 500px;
+  
+}
