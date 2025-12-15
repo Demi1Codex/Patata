@@ -7,7 +7,8 @@
 const STATE = {
     ideas: [],
     theme: 'dark',
-    currentCategory: 'all'
+    currentCategory: 'all',
+    isSharedSession: false
 };
 
 // DOM Elements
@@ -21,7 +22,11 @@ const elements = {
     pausedList: document.getElementById('pausedList'),
     imageInput: document.getElementById('ideaImage'),
     imagePreview: document.getElementById('imagePreview'),
-    categoryList: document.getElementById('categoryFilterList')
+    imagePreview: document.getElementById('imagePreview'),
+    categoryList: document.getElementById('categoryFilterList'),
+    shareBtn: document.getElementById('shareBtn'),
+    openSharedBtn: document.getElementById('openSharedBtn'),
+    sharedFileInput: document.getElementById('sharedFileInput')
 };
 
 // --- Initialization ---
@@ -45,6 +50,10 @@ function loadState() {
 }
 
 function saveState() {
+    if (STATE.isSharedSession) {
+        console.log('Shared session active. Skipping local save.');
+        return;
+    }
     localStorage.setItem('ideaBoardData', JSON.stringify(STATE));
     // In a real backend app, this would be a POST/PUT request to a file/DB
     console.log('Data saved to local storage (simulating file save).');
@@ -266,6 +275,10 @@ function setupEventListeners() {
             }
         });
     }
+
+    if (elements.shareBtn) elements.shareBtn.addEventListener('click', handleShareBoard);
+    if (elements.openSharedBtn) elements.openSharedBtn.addEventListener('click', () => elements.sharedFileInput.click());
+    if (elements.sharedFileInput) elements.sharedFileInput.addEventListener('change', handleOpenSharedBoard);
 }
 
 function setCategory(category) {
@@ -285,4 +298,142 @@ function setCategory(category) {
 }
 
 // Start
+// --- Sharing & Crypto Logic ---
+
+async function handleShareBoard() {
+    if (STATE.ideas.length === 0) {
+        alert('No hay ideas para compartir.');
+        return;
+    }
+
+    const password = prompt('Escoge una contraseña para proteger este tablero:');
+    if (!password) return;
+
+    try {
+        const encryptedData = await encryptData(STATE.ideas, password);
+        downloadFile('tablero_ideas.lock', encryptedData);
+    } catch (error) {
+        console.error('Error in encryption:', error);
+        alert('Error al encriptar el tablero.');
+    }
+}
+
+async function handleOpenSharedBoard(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const password = prompt('Introduce la contraseña para abrir este tablero:');
+    if (!password) {
+        e.target.value = ''; // Reset input
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function (event) {
+        try {
+            const encryptedContent = event.target.result;
+            const decryptedIdeas = await decryptData(encryptedContent, password);
+
+            // Success
+            loadSharedBoard(decryptedIdeas);
+        } catch (error) {
+            console.error(error);
+            alert('Contraseña incorrecta o archivo dañado.');
+        } finally {
+            e.target.value = ''; // Reset input
+        }
+    };
+    reader.readAsText(file);
+}
+
+function loadSharedBoard(ideas) {
+    STATE.ideas = ideas;
+    STATE.isSharedSession = true;
+
+    // Update UI to reflect shared state
+    document.title = "Tablero Compartido (Solo Lectura)";
+    document.querySelector('header h1').innerHTML = "🔒 Tablero Compartido";
+    document.querySelector('header h1').style.color = "#F87171"; // Reddish to indicate warning/special state
+
+    // Refresh board
+    setCategory('all');
+    renderBoard();
+
+    alert('Has abierto un tablero compartido. ¡Cuidado! Los cambios que hagas aquí NO se guardarán permanentemente.');
+}
+
+function downloadFile(filename, content) {
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// --- Crypto Helpers (Web Crypto API) ---
+
+async function deriveKey(password, salt) {
+    const enc = new TextEncoder();
+    const keyMaterial = await window.crypto.subtle.importKey(
+        "raw",
+        enc.encode(password),
+        { name: "PBKDF2" },
+        false,
+        ["deriveKey"]
+    );
+    return window.crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt: salt,
+            iterations: 100000,
+            hash: "SHA-256"
+        },
+        keyMaterial,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt", "decrypt"]
+    );
+}
+
+async function encryptData(data, password) {
+    const enc = new TextEncoder();
+    const salt = window.crypto.getRandomValues(new Uint8Array(16));
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const key = await deriveKey(password, salt);
+
+    const ciphertext = await window.crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        key,
+        enc.encode(JSON.stringify(data))
+    );
+
+    // Pack everything into a JSON string
+    return JSON.stringify({
+        salt: Array.from(salt),
+        iv: Array.from(iv),
+        ciphertext: Array.from(new Uint8Array(ciphertext))
+    });
+}
+
+async function decryptData(encryptedJson, password) {
+    const data = JSON.parse(encryptedJson);
+    const salt = new Uint8Array(data.salt);
+    const iv = new Uint8Array(data.iv);
+    const ciphertext = new Uint8Array(data.ciphertext);
+    const key = await deriveKey(password, salt);
+
+    const decrypted = await window.crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: iv },
+        key,
+        ciphertext
+    );
+
+    const dec = new TextDecoder();
+    return JSON.parse(dec.decode(decrypted));
+}
+
 document.addEventListener('DOMContentLoaded', init);
