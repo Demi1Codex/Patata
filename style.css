@@ -551,13 +551,13 @@ button:active {
     }
 
     /* Position each button from right to left */
-    #openSharedBtn {
+    #themeToggle {
         right: 1rem;
+        font-size: 1.2rem;
     }
 
-    #themeToggle {
+    #openSharedBtn {
         right: 4.5rem;
-        font-size: 1.2rem;
     }
 
     #shareBtn {
@@ -638,13 +638,13 @@ button:active {
         font-size: 1rem;
     }
 
-    #openSharedBtn {
+    #themeToggle {
         right: 0.75rem;
+        font-size: 1.1rem;
     }
 
-    #themeToggle {
+    #openSharedBtn {
         right: 4rem;
-        font-size: 1.1rem;
     }
 
     #shareBtn {
