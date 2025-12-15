@@ -6,8 +6,9 @@
     --text-primary: #FFFFFF;
     --text-secondary: #B3B3B3;
     --border-color: #333333;
-    --accent-color: #8B5CF6;
-    /* Violet */
+    --accent-color: #00FF3C;
+    /* Electric Green */
+
     --danger-color: #EF4444;
 
     /* Status Colors (Pastel - Dark Mode Adjusted) */
@@ -28,12 +29,17 @@
 }
 
 [data-theme="light"] {
-    --bg-color: #F3F4F6;
-    --surface-color: #FFFFFF;
-    --text-primary: #1F2937;
-    --text-secondary: #4B5563;
-    --border-color: #E5E7EB;
-    --accent-color: #7C3AED;
+    --bg-color: #E6FFED;
+    /* Very pale green background */
+    --surface-color: #70FF99;
+    /* The requested bright green */
+    --text-primary: #064E3B;
+    /* Dark green text */
+    --text-secondary: #065F46;
+    /* Slightly lighter dark green */
+    --border-color: #86EFAC;
+    --accent-color: #005C2B;
+    /* Deep Green for Accent so it's visible */
 
     /* Status Colors (Pastel - Light Mode) */
     --status-progress-bg: #EFF6FF;
@@ -87,7 +93,7 @@ h1 {
     font-weight: 700;
     font-size: 1.5rem;
     letter-spacing: -0.025em;
-    background: linear-gradient(to right, var(--accent-color), #EC4899);
+    background: linear-gradient(to right, var(--accent-color), #06B6D4);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -128,7 +134,8 @@ button:active {
 
 .btn-primary {
     background-color: var(--accent-color);
-    color: white;
+    color: #121212;
+    /* Dark text for contrast on bright green */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
@@ -138,11 +145,15 @@ button:active {
 
 /* Main Layout */
 .container {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 2rem;
     flex: 1;
     width: 100%;
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 3rem;
+    align-items: start;
 }
 
 .toolbar {
@@ -246,12 +257,14 @@ button:active {
 }
 
 .card-image {
-    width: 100%;
-    height: 150px;
+    width: calc(100% + 2.5rem);
+    margin: -1.25rem -1.25rem 1rem -1.25rem;
+    height: 180px;
     object-fit: cover;
-    border-radius: 8px;
-    margin-bottom: 1rem;
+    border-radius: 12px 12px 0 0;
+    /* Match card top corners only */
     background-color: rgba(0, 0, 0, 0.1);
+    display: block;
 }
 
 .card-title {
@@ -372,7 +385,7 @@ button:active {
 .form-control:focus {
     outline: none;
     border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    box-shadow: 0 0 0 3px rgba(0, 255, 60, 0.2);
 }
 
 .select-status {
@@ -403,6 +416,99 @@ button:active {
 }
 
 /* Empty State */
+/* Category Sidebar */
+.sidebar {
+    background-color: var(--surface-color);
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    /* Sticky sidebar */
+    position: sticky;
+    top: 100px;
+}
+
+.sidebar h3 {
+    margin-bottom: 1.25rem;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.category-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.category-btn {
+    width: 100%;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: all 0.2s;
+    background-color: transparent;
+    /* Reset */
+}
+
+.category-btn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+[data-theme="light"] .category-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.category-btn.active {
+    background-color: var(--accent-color);
+    color: #121212;
+    font-weight: 700;
+}
+
+/* Category Badge in Card */
+.category-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+[data-theme="light"] .category-badge {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Mobile Responsive */
+@media (max-width: 900px) {
+    .container {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .sidebar {
+        position: static;
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .category-list {
+        flex-direction: row;
+        padding-bottom: 0.5rem;
+    }
+
+    .category-btn {
+        white-space: nowrap;
+        width: auto;
+    }
+}
+
 .empty-state {
     text-align: center;
     padding: 2rem;

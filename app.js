@@ -6,7 +6,8 @@
 // State Management
 const STATE = {
     ideas: [],
-    theme: 'dark'
+    theme: 'dark',
+    currentCategory: 'all'
 };
 
 // DOM Elements
@@ -19,7 +20,8 @@ const elements = {
     progressList: document.getElementById('progressList'),
     pausedList: document.getElementById('pausedList'),
     imageInput: document.getElementById('ideaImage'),
-    imagePreview: document.getElementById('imagePreview')
+    imagePreview: document.getElementById('imagePreview'),
+    categoryList: document.getElementById('categoryFilterList')
 };
 
 // --- Initialization ---
@@ -69,7 +71,13 @@ function renderBoard() {
     elements.progressList.innerHTML = '';
     elements.pausedList.innerHTML = '';
 
-    STATE.ideas.forEach(idea => {
+    // Filter ideas based on current category
+    const filteredIdeas = STATE.ideas.filter(idea => {
+        if (STATE.currentCategory === 'all') return true;
+        return idea.category === STATE.currentCategory;
+    });
+
+    filteredIdeas.forEach(idea => {
         const card = createIdeaCard(idea);
         if (idea.status === 'progress') {
             elements.progressList.appendChild(card);
@@ -78,7 +86,7 @@ function renderBoard() {
         }
     });
 
-    updateCounts();
+    updateCounts(filteredIdeas);
 }
 
 function createIdeaCard(idea) {
@@ -90,11 +98,15 @@ function createIdeaCard(idea) {
 
     div.innerHTML = `
         ${imageHtml}
+        <div class="category-badge">${escapeHtml(idea.category || 'General')}</div>
         <div class="card-title">${escapeHtml(idea.title)}</div>
         <p class="card-desc">${escapeHtml(idea.description)}</p>
         <div class="card-actions">
             <button class="btn-icon" onclick="deleteIdea('${idea.id}')" title="Delete">
                 🗑️
+            </button>
+            <button class="btn-icon" onclick="editIdea('${idea.id}')" title="Edit">
+                ✏️
             </button>
             <button class="btn-icon" onclick="toggleStatus('${idea.id}')" title="Move to ${idea.status === 'progress' ? 'Paused' : 'Progress'}">
                 ⇄
@@ -114,9 +126,10 @@ function escapeHtml(text) {
         .replace(/'/g, "&#039;");
 }
 
-function updateCounts() {
-    const progressCount = STATE.ideas.filter(i => i.status === 'progress').length;
-    const pausedCount = STATE.ideas.filter(i => i.status === 'paused').length;
+function updateCounts(ideas) {
+    const list = ideas || STATE.ideas;
+    const progressCount = list.filter(i => i.status === 'progress').length;
+    const pausedCount = list.filter(i => i.status === 'paused').length;
 
     document.getElementById('progressCount').innerText = progressCount;
     document.getElementById('pausedCount').innerText = pausedCount;
@@ -127,40 +140,53 @@ function updateCounts() {
 function addIdea(e) {
     e.preventDefault();
 
+    const id = document.getElementById('ideaId').value;
     const title = document.getElementById('ideaTitle').value;
     const description = document.getElementById('ideaDesc').value;
     const status = document.getElementById('ideaStatus').value;
+    const category = document.getElementById('ideaCategory').value;
     const imageFile = document.getElementById('ideaImage').files[0];
 
-    const newIdea = {
-        id: Date.now().toString(),
+    // If ID exists, we are updating. get existing idea to preserve properties like image if not changed
+    let existingIdea = id ? STATE.ideas.find(i => i.id === id) : null;
+
+    const ideaData = {
+        id: id || Date.now().toString(),
         title,
         description,
         status,
-        image: null,
-        createdAt: new Date().toISOString()
+        category,
+        image: existingIdea ? existingIdea.image : null, // Default to existing
+        createdAt: existingIdea ? existingIdea.createdAt : new Date().toISOString()
     };
 
     if (imageFile) {
         const reader = new FileReader();
         reader.onload = function (event) {
-            newIdea.image = event.target.result; // Save base64 string
-            saveIdeaAndClose(newIdea);
+            ideaData.image = event.target.result; // Update image
+            saveIdeaAndClose(ideaData, !!id);
         };
         reader.readAsDataURL(imageFile);
     } else {
-        saveIdeaAndClose(newIdea);
+        saveIdeaAndClose(ideaData, !!id);
     }
 }
 
-function saveIdeaAndClose(idea) {
-    STATE.ideas.push(idea);
+function saveIdeaAndClose(idea, isUpdate) {
+    if (isUpdate) {
+        const index = STATE.ideas.findIndex(i => i.id === idea.id);
+        if (index !== -1) STATE.ideas[index] = idea;
+    } else {
+        STATE.ideas.push(idea);
+    }
+
     saveState();
     renderBoard();
     closeModal();
-    elements.ideaForm.reset();
+    resetForm();
 }
 
+// Global functions for inline onclick handlers
 // Global functions for inline onclick handlers
 window.deleteIdea = function (id) {
     if (confirm('Are you sure you want to delete this idea?')) {
@@ -168,6 +194,23 @@ window.deleteIdea = function (id) {
         saveState();
         renderBoard();
     }
+};
+
+window.editIdea = function (id) {
+    const idea = STATE.ideas.find(i => i.id === id);
+    if (!idea) return;
+
+    // Populate form
+    document.getElementById('ideaId').value = idea.id;
+    document.getElementById('ideaTitle').value = idea.title;
+    document.getElementById('ideaDesc').value = idea.description;
+    document.getElementById('ideaStatus').value = idea.status;
+    document.getElementById('ideaCategory').value = idea.category || 'Personal';
+
+    // Change Modal Title
+    document.querySelector('.modal-title').innerText = 'Editar Idea';
+
+    openModal(false); // false = don't clear form
 };
 
 window.toggleStatus = function (id) {
@@ -181,13 +224,21 @@ window.toggleStatus = function (id) {
 
 // --- Modal Handling ---
 
-function openModal() {
+function openModal(clear = true) {
+    if (clear) resetForm();
     elements.modal.classList.add('open');
     document.getElementById('ideaTitle').focus();
 }
 
 function closeModal() {
     elements.modal.classList.remove('open');
+    resetForm();
+    document.querySelector('.modal-title').innerText = 'Crear Nueva Idea';
+}
+
+function resetForm() {
+    elements.ideaForm.reset();
+    document.getElementById('ideaId').value = '';
 }
 
 // --- Event Listeners ---
@@ -205,6 +256,32 @@ function setupEventListeners() {
     }
 
     elements.ideaForm.addEventListener('submit', addIdea);
+
+    // Category Filter Listeners
+    if (elements.categoryList) {
+        elements.categoryList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('category-btn')) {
+                const category = e.target.getAttribute('data-category');
+                setCategory(category);
+            }
+        });
+    }
+}
+
+function setCategory(category) {
+    STATE.currentCategory = category;
+
+    // Update UI active state
+    const buttons = document.querySelectorAll('.category-btn');
+    buttons.forEach(btn => {
+        if (btn.getAttribute('data-category') === category) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    renderBoard();
 }
 
 // Start

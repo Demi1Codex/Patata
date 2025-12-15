@@ -14,7 +14,7 @@
 <body>
 
   <header>
-    <h1>✨ Mis Ideas</h1>
+    <h1>✨Borrachos.docx</h1>
     <div class="controls">
       <button id="themeToggle" class="theme-toggle" aria-label="Toggle Theme">
         ☀️ Light
@@ -23,45 +23,57 @@
   </header>
 
   <main class="container">
+    <aside class="sidebar">
+      <h3>Categorías</h3>
+      <ul class="category-list" id="categoryFilterList">
+        <li><button class="category-btn active" data-category="all">Todas</button></li>
+        <li><button class="category-btn" data-category="Personal">Personal</button></li>
+        <li><button class="category-btn" data-category="Trabajo">Trabajo</button></li>
+        <li><button class="category-btn" data-category="Diversion">Diversión</button></li>
+        <li><button class="category-btn" data-category="Grupales">Grupales</button></li>
+      </ul>
+    </aside>
 
-    <div class="toolbar">
-      <button id="addIdeaBtn" class="btn-primary">
-        + Nueva Idea
-      </button>
-    </div>
-
-    <div class="board">
-
-      <!-- Progress Column -->
-      <div class="column">
-        <div class="column-header">
-          <span class="column-title">
-            <span style="color: #60A5FA;">●</span>
-            En Progreso
-          </span>
-          <span id="progressCount" class="count-badge">0</span>
-        </div>
-        <div id="progressList" class="idea-list">
-          <!-- Ideas will be injected here -->
-          <div class="empty-state">No hay ideas en progreso</div>
-        </div>
+    <div class="content-area">
+      <div class="toolbar">
+        <button id="addIdeaBtn" class="btn-primary">
+          + Nueva Idea
+        </button>
       </div>
 
-      <!-- Paused Column -->
-      <div class="column">
-        <div class="column-header">
-          <span class="column-title">
-            <span style="color: #F87171;">●</span>
-            Pausado
-          </span>
-          <span id="pausedCount" class="count-badge">0</span>
-        </div>
-        <div id="pausedList" class="idea-list">
-          <!-- Ideas will be injected here -->
-          <div class="empty-state">No hay ideas pausadas</div>
-        </div>
-      </div>
+      <div class="board">
 
+        <!-- Progress Column -->
+        <div class="column">
+          <div class="column-header">
+            <span class="column-title">
+              <span style="color: #60A5FA;">●</span>
+              En Progreso
+            </span>
+            <span id="progressCount" class="count-badge">0</span>
+          </div>
+          <div id="progressList" class="idea-list">
+            <!-- Ideas will be injected here -->
+            <div class="empty-state">No hay ideas en progreso</div>
+          </div>
+        </div>
+
+        <!-- Paused Column -->
+        <div class="column">
+          <div class="column-header">
+            <span class="column-title">
+              <span style="color: #F87171;">●</span>
+              Pausado
+            </span>
+            <span id="pausedCount" class="count-badge">0</span>
+          </div>
+          <div id="pausedList" class="idea-list">
+            <!-- Ideas will be injected here -->
+            <div class="empty-state">No hay ideas pausadas</div>
+          </div>
+        </div>
+
+      </div>
     </div>
 
   </main>
@@ -89,6 +101,16 @@
         </div>
 
         <div class="form-group">
+          <label for="ideaCategory">Categoría</label>
+          <select id="ideaCategory" class="form-control select-status">
+            <option value="Personal">Personal</option>
+            <option value="Trabajo">Trabajo</option>
+            <option value="Diversion">Diversión</option>
+            <option value="Grupales">Grupales</option>
+          </select>
+        </div>
+
+        <div class="form-group">
           <label for="ideaStatus">Estado Inicial</label>
           <select id="ideaStatus" class="form-control select-status">
             <option value="progress">En Progreso</option>
@@ -101,6 +123,7 @@
           <input type="file" id="ideaImage" class="form-control" accept="image/*">
         </div>
 
+        <input type="hidden" id="ideaId">
         <div class="modal-footer">
           <button type="button" class="btn-secondary">Cancelar</button>
           <button type="submit" class="btn-primary">Guardar Idea</button>
