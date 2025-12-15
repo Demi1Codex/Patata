@@ -1,43 +1,116 @@
-<html lang="es">
-  
-  <head>
-        <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BORRACHOS.DOCX</title>
-    <link rel="stylesheet" href="interestelares.css">
-    <link rel="icon" href="assets/favicon.png">
-  </head>
-  
-  <body>
-    <h1>Bienvenido a</h1>
-    <h1>BORRACHOS
-      .DOCX</h1>
-    <div>
-    <h2>Aqui es donde almaceno y organizo mis ideas</h2>
-    </div>
-    <h3 class="pl">Aqui pondre solo lo principal</h3>
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
 
-    <div class="img" >
-      <h2>Ocupado ↓</h2>
-      <img class="pl" src="https://static.wikia.nocookie.net/fridaynightfunking/images/6/63/CodenameEngineIcon.jpg">
-      <div class="text-overlay">
-        <h1 class="peque Arelativo">proceguir con el modding</h1>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Espacio de Ideas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <header>
+    <h1>✨ Mis Ideas</h1>
+    <div class="controls">
+      <button id="themeToggle" class="theme-toggle" aria-label="Toggle Theme">
+        ☀️ Light
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <div class="toolbar">
+      <button id="addIdeaBtn" class="btn-primary">
+        + Nueva Idea
+      </button>
+    </div>
+
+    <div class="board">
+
+      <!-- Progress Column -->
+      <div class="column">
+        <div class="column-header">
+          <span class="column-title">
+            <span style="color: #60A5FA;">●</span>
+            En Progreso
+          </span>
+          <span id="progressCount" class="count-badge">0</span>
+        </div>
+        <div id="progressList" class="idea-list">
+          <!-- Ideas will be injected here -->
+          <div class="empty-state">No hay ideas en progreso</div>
+        </div>
       </div>
-    </div>
 
-    <div class="img" >
-      <h2>Ocupado ↓</h2>
-      <img class="pl" src="https://i1.sndcdn.com/artworks-oh5hmxqyCxfMSgxG-IahpoA-t500x500.jpg">
-      <div class="text-overlay">
-        <h1 class="peque Arelativo">portear el mod a mi manera</h1>
+      <!-- Paused Column -->
+      <div class="column">
+        <div class="column-header">
+          <span class="column-title">
+            <span style="color: #F87171;">●</span>
+            Pausado
+          </span>
+          <span id="pausedCount" class="count-badge">0</span>
+        </div>
+        <div id="pausedList" class="idea-list">
+          <!-- Ideas will be injected here -->
+          <div class="empty-state">No hay ideas pausadas</div>
+        </div>
       </div>
+
     </div>
 
+  </main>
 
-    <!-- esto es del final, es parte del diseño, No TOCAR-->
-    <a class="button" href="indigena.html">
-      <h3 class="Arelativo peque">cosas secundarias</h3>
-    </a>
-  </body>
+  <!-- Create Idea Modal -->
+  <div id="ideaModal" class="modal-overlay">
+    <div class="modal">
+
+      <div class="modal-header">
+        <h2 class="modal-title">Crear Nueva Idea</h2>
+        <button onclick="closeModal()" class="btn-icon">✕</button>
+      </div>
+
+      <form id="ideaForm">
+
+        <div class="form-group">
+          <label for="ideaTitle">Nombre de la idea</label>
+          <input type="text" id="ideaTitle" class="form-control" required placeholder="Ej: Rediseñar landing page...">
+        </div>
+
+        <div class="form-group">
+          <label for="ideaDesc">Descripción</label>
+          <textarea id="ideaDesc" class="form-control" rows="3" required
+            placeholder="Detalles sobre la idea..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="ideaStatus">Estado Inicial</label>
+          <select id="ideaStatus" class="form-control select-status">
+            <option value="progress">En Progreso</option>
+            <option value="paused">Pausado</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="ideaImage">Imagen (Opcional)</label>
+          <input type="file" id="ideaImage" class="form-control" accept="image/*">
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar Idea</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
 </html>
