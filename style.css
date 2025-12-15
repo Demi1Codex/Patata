@@ -491,6 +491,7 @@ button:active {
     .container {
         grid-template-columns: 1fr;
         gap: 2rem;
+        padding: 1rem;
     }
 
     .sidebar {
@@ -507,6 +508,144 @@ button:active {
     .category-btn {
         white-space: nowrap;
         width: auto;
+    }
+
+    /* Header optimizations for mobile */
+    header {
+        padding: 1rem;
+        flex-wrap: wrap;
+    }
+
+    h1 {
+        font-size: 1.2rem;
+        flex: 1;
+    }
+
+    .controls {
+        gap: 0.5rem;
+    }
+
+    /* Theme toggle fixed in corner on mobile */
+    #themeToggle {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 1001;
+        padding: 0.6rem;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Hide text in theme toggle, show only icon */
+    #themeToggle {
+        font-size: 1.2rem;
+    }
+
+    /* Optimize share and open buttons for mobile */
+    #shareBtn,
+    #openSharedBtn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+    }
+
+    /* Board adjustments */
+    .board {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .column {
+        min-height: 300px;
+        padding: 1rem;
+    }
+
+    /* Toolbar adjustments */
+    .toolbar {
+        margin-bottom: 1.5rem;
+    }
+
+    .btn-primary {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Modal adjustments */
+    .modal {
+        width: 95%;
+        padding: 1.5rem;
+        margin: 1rem;
+    }
+
+    .modal-title {
+        font-size: 1.1rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .modal-footer {
+        flex-direction: column-reverse;
+        gap: 0.75rem;
+    }
+
+    .modal-footer button {
+        width: 100%;
+    }
+
+    /* Card adjustments */
+    .idea-card {
+        padding: 1rem;
+    }
+
+    .card-image {
+        height: 150px;
+    }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+    header {
+        padding: 0.75rem;
+    }
+
+    h1 {
+        font-size: 1rem;
+    }
+
+    #themeToggle {
+        top: 0.75rem;
+        right: 0.75rem;
+        width: 40px;
+        height: 40px;
+        padding: 0.5rem;
+    }
+
+    #shareBtn,
+    #openSharedBtn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+    }
+
+    .container {
+        padding: 0.75rem;
+    }
+
+    .column {
+        padding: 0.75rem;
+    }
+
+    .card-title {
+        font-size: 1rem;
+    }
+
+    .card-desc {
+        font-size: 0.85rem;
     }
 }
 

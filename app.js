@@ -108,8 +108,18 @@ async function saveState() {
 
 function applyTheme() {
     document.documentElement.setAttribute('data-theme', STATE.theme);
-    const icon = STATE.theme === 'dark' ? '☀️ Light' : '🌙 Dark';
-    if (elements.themeToggle) elements.themeToggle.innerText = icon;
+    updateThemeButtonText();
+}
+
+function updateThemeButtonText() {
+    if (!elements.themeToggle) return;
+
+    const isMobile = window.innerWidth <= 900;
+    const iconOnly = STATE.theme === 'dark' ? '☀️' : '🌙';
+    const iconWithText = STATE.theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+
+    elements.themeToggle.innerText = isMobile ? iconOnly : iconWithText;
+    elements.themeToggle.setAttribute('aria-label', STATE.theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
 }
 
 function toggleTheme() {
@@ -324,6 +334,9 @@ function setupEventListeners() {
     if (elements.shareBtn) elements.shareBtn.addEventListener('click', handleShareBoard);
     if (elements.openSharedBtn) elements.openSharedBtn.addEventListener('click', () => elements.sharedFileInput.click());
     if (elements.sharedFileInput) elements.sharedFileInput.addEventListener('change', handleOpenSharedBoard);
+
+    // Update theme button text on window resize
+    window.addEventListener('resize', updateThemeButtonText);
 }
 
 function setCategory(category) {
