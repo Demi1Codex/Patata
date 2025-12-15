@@ -346,17 +346,19 @@ function setCategory(category) {
 // --- Sharing & Crypto Logic ---
 
 async function handleShareBoard() {
-    if (STATE.ideas.length === 0) {
-        alert('No hay ideas para compartir.');
+    const groupIdeas = STATE.ideas.filter(idea => idea.category === 'Grupales');
+
+    if (groupIdeas.length === 0) {
+        alert('No hay ideas en la categoría "Grupales" para compartir.');
         return;
     }
 
-    const password = prompt('Escoge una contraseña para proteger este tablero:');
+    const password = prompt('Escoge una contraseña para proteger este tablero grupal:');
     if (!password) return;
 
     try {
-        const encryptedData = await encryptData(STATE.ideas, password);
-        downloadFile('tablero_ideas.lock', encryptedData);
+        const encryptedData = await encryptData(groupIdeas, password);
+        downloadFile('tablero_grupales.lock', encryptedData);
     } catch (error) {
         console.error('Error in encryption:', error);
         alert('Error al encriptar el tablero.');
