@@ -555,13 +555,13 @@ button:active {
         right: 1rem;
     }
 
-    #shareBtn {
+    #themeToggle {
         right: 4.5rem;
+        font-size: 1.2rem;
     }
 
-    #themeToggle {
+    #shareBtn {
         right: 8rem;
-        font-size: 1.2rem;
     }
 
     /* Board adjustments */
@@ -642,13 +642,13 @@ button:active {
         right: 0.75rem;
     }
 
-    #shareBtn {
+    #themeToggle {
         right: 4rem;
+        font-size: 1.1rem;
     }
 
-    #themeToggle {
+    #shareBtn {
         right: 7.25rem;
-        font-size: 1.1rem;
     }
 
     .container {
