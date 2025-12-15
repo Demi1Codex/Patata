@@ -1,7 +1,7 @@
 body {
     background:
     url('assets/codingBG.png') center center / cover no-repeat fixed,
-    linear-gradient(180deg, rgb(0, 255, 130), rgb(200, 0, 100));
+    linear-gradient(180deg, rgb(255, 0, 200), rgb(149, 0, 255));
     font-family: 'FuenteAlt', Courier, Times New Roman;
     color: rgb(150,0,255);
     text-shadow: 0px 3px 5px rgb(45,0,100) ;
