@@ -8,7 +8,8 @@ const STATE = {
     ideas: [],
     theme: 'dark',
     currentCategory: 'all',
-    isSharedSession: false
+    isSharedSession: false,
+    sessionPassword: null // Stores password in memory for current session
 };
 
 // DOM Elements
@@ -31,32 +32,76 @@ const elements = {
 
 // --- Initialization ---
 
-function init() {
-    loadState();
+async function init() {
+    await loadState();
     applyTheme();
     renderBoard();
     setupEventListeners();
+
+    // Update UI if we loaded a shared session
+    if (STATE.isSharedSession) {
+        document.title = "Tablero Compartido";
+        const h1 = document.querySelector('header h1');
+        if (h1) {
+            h1.innerHTML = "🔒 Tablero Compartido";
+            h1.style.color = "#F87171";
+        }
+    }
 }
 
 // --- Data Persistence ---
 
-function loadState() {
+async function loadState() {
     const savedData = localStorage.getItem('ideaBoardData');
     if (savedData) {
         const parsed = JSON.parse(savedData);
-        STATE.ideas = parsed.ideas || [];
         STATE.theme = parsed.theme || 'dark';
+
+        if (parsed.isSharedSession && parsed.encryptedData) {
+            // Locked session found
+            const password = prompt("🔒 Tablero Protegido. Introduce la contraseña para restaurar la sesión:");
+            if (password) {
+                try {
+                    const decryptedIdeas = await decryptData(parsed.encryptedData, password);
+                    STATE.ideas = decryptedIdeas;
+                    STATE.sessionPassword = password;
+                    STATE.isSharedSession = true;
+                } catch (error) {
+                    console.error("Decryption failed", error);
+                    alert("Contraseña incorrecta. No se puede acceder al tablero protegido.");
+                    STATE.ideas = [];
+                }
+            } // If cancelled, ideas remains empty
+        } else {
+            STATE.ideas = parsed.ideas || [];
+        }
     }
 }
 
-function saveState() {
+async function saveState() {
     if (STATE.isSharedSession) {
-        console.log('Shared session active. Skipping local save.');
+        if (STATE.sessionPassword) {
+            try {
+                // Determine what to encrypt
+                const encryptedString = await encryptData(STATE.ideas, STATE.sessionPassword);
+                const payload = {
+                    theme: STATE.theme,
+                    isSharedSession: true,
+                    encryptedData: encryptedString
+                };
+                localStorage.setItem('ideaBoardData', JSON.stringify(payload));
+                console.log('Shared board state saved encrypted.');
+            } catch (e) {
+                console.error("Error saving shared state:", e);
+            }
+        } else {
+            console.warn('Shared session active but no password. Skipping save.');
+        }
         return;
     }
+
+    // Normal save
     localStorage.setItem('ideaBoardData', JSON.stringify(STATE));
-    // In a real backend app, this would be a POST/PUT request to a file/DB
-    console.log('Data saved to local storage (simulating file save).');
 }
 
 // --- Theme Management ---
@@ -334,6 +379,13 @@ async function handleOpenSharedBoard(e) {
             const encryptedContent = event.target.result;
             const decryptedIdeas = await decryptData(encryptedContent, password);
 
+            // Verify password is correct by trying to decrypt first? 
+            // Logic is: user provides password for FILE. We use that same password for SESSION persistence.
+
+            // Allow saving of this session
+            STATE.sessionPassword = password;
+            saveState(); // Save immediately as "Shared Session" to persistence
+
             // Success
             loadSharedBoard(decryptedIdeas);
         } catch (error) {
@@ -351,7 +403,7 @@ function loadSharedBoard(ideas) {
     STATE.isSharedSession = true;
 
     // Update UI to reflect shared state
-    document.title = "Tablero Compartido (Solo Lectura)";
+    document.title = "Tablero Compartido";
     document.querySelector('header h1').innerHTML = "🔒 Tablero Compartido";
     document.querySelector('header h1').style.color = "#F87171"; // Reddish to indicate warning/special state
 
@@ -359,7 +411,7 @@ function loadSharedBoard(ideas) {
     setCategory('all');
     renderBoard();
 
-    alert('Has abierto un tablero compartido. ¡Cuidado! Los cambios que hagas aquí NO se guardarán permanentemente.');
+    // alert('Has abierto un tablero compartido. ¡Cuidado! Los cambios que hagas aquí NO se guardarán permanentemente.');
 }
 
 function downloadFile(filename, content) {
