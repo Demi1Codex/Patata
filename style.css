@@ -531,26 +531,8 @@ button:active {
         flex-direction: row;
     }
 
-    /* Theme toggle fixed in BOTTOM LEFT corner on mobile */
-    #themeToggle {
-        position: fixed;
-        bottom: 1.5rem;
-        left: 1.5rem;
-        top: auto;
-        right: auto;
-        z-index: 1001;
-        padding: 0.6rem;
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        font-size: 1.3rem;
-    }
-
-    /* Share and Open buttons fixed in TOP RIGHT corner on mobile */
+    /* All three buttons fixed in TOP RIGHT corner on mobile */
+    #themeToggle,
     #shareBtn,
     #openSharedBtn {
         position: fixed;
@@ -568,12 +550,18 @@ button:active {
         gap: 0;
     }
 
+    /* Position each button from right to left */
+    #openSharedBtn {
+        right: 1rem;
+    }
+
     #shareBtn {
         right: 4.5rem;
     }
 
-    #openSharedBtn {
-        right: 1rem;
+    #themeToggle {
+        right: 8rem;
+        font-size: 1.2rem;
     }
 
     /* Board adjustments */
@@ -641,15 +629,7 @@ button:active {
         font-size: 1rem;
     }
 
-    #themeToggle {
-        bottom: 1rem;
-        left: 1rem;
-        width: 46px;
-        height: 46px;
-        padding: 0.5rem;
-        font-size: 1.2rem;
-    }
-
+    #themeToggle,
     #shareBtn,
     #openSharedBtn {
         width: 40px;
@@ -658,12 +638,17 @@ button:active {
         font-size: 1rem;
     }
 
+    #openSharedBtn {
+        right: 0.75rem;
+    }
+
     #shareBtn {
         right: 4rem;
     }
 
-    #openSharedBtn {
-        right: 0.75rem;
+    #themeToggle {
+        right: 7.25rem;
+        font-size: 1.1rem;
     }
 
     .container {
