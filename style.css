@@ -95,6 +95,7 @@ h1 {
     letter-spacing: -0.025em;
     background: linear-gradient(to right, var(--accent-color), #06B6D4);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
