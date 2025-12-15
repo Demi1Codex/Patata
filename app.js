@@ -35,6 +35,7 @@ const elements = {
 async function init() {
     await loadState();
     applyTheme();
+    updateShareButtonsText();
     renderBoard();
     setupEventListeners();
 
@@ -126,6 +127,20 @@ function toggleTheme() {
     STATE.theme = STATE.theme === 'dark' ? 'light' : 'dark';
     applyTheme();
     saveState();
+}
+
+function updateShareButtonsText() {
+    const isMobile = window.innerWidth <= 900;
+
+    if (elements.shareBtn) {
+        elements.shareBtn.innerText = isMobile ? '📤' : '📤 Compartir';
+        elements.shareBtn.setAttribute('aria-label', 'Compartir Tablero');
+    }
+
+    if (elements.openSharedBtn) {
+        elements.openSharedBtn.innerText = isMobile ? '📂' : '📂 Abrir';
+        elements.openSharedBtn.setAttribute('aria-label', 'Abrir Tablero Compartido');
+    }
 }
 
 // --- Board Rendering ---
@@ -335,8 +350,11 @@ function setupEventListeners() {
     if (elements.openSharedBtn) elements.openSharedBtn.addEventListener('click', () => elements.sharedFileInput.click());
     if (elements.sharedFileInput) elements.sharedFileInput.addEventListener('change', handleOpenSharedBoard);
 
-    // Update theme button text on window resize
-    window.addEventListener('resize', updateThemeButtonText);
+    // Update button text on window resize
+    window.addEventListener('resize', () => {
+        updateThemeButtonText();
+        updateShareButtonsText();
+    });
 }
 
 function setCategory(category) {
