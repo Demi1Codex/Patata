@@ -1,75 +1,99 @@
 document.getElementById('create').addEventListener('click', async () => {
     const title = document.getElementById('title').value.trim();
     const desc = document.getElementById('desc').value.trim();
-    const category = document.getElementById('category').value; // Get selected category
+    const category = document.getElementById('category').value;
 
     if (!title) {
         alert('Por favor, escribe un título para la idea.');
         return;
     }
 
-    try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const newIdea = {
+        id: Date.now().toString(),
+        title: title,
+        description: desc,
+        status: 'progress',
+        category: category,
+        image: null,
+        createdAt: new Date().toISOString()
+    };
 
+    const TARGET_URL = 'https://demi1codex.github.io/Patata/';
+
+    try {
+        // 1. Find if Patata is already open
+        const tabs = await chrome.tabs.query({ url: TARGET_URL + '*' });
+        let targetTab = tabs.length > 0 ? tabs[0] : null;
+
+        // 2. If not open, open it in background
+        if (!targetTab) {
+            targetTab = await chrome.tabs.create({ url: TARGET_URL, active: false });
+
+            // Wait for it to load
+            await new Promise((resolve) => {
+                const listener = (tabId, changeInfo) => {
+                    if (tabId === targetTab.id && changeInfo.status === 'complete') {
+                        chrome.tabs.onUpdated.removeListener(listener);
+                        resolve();
+                    }
+                };
+                chrome.tabs.onUpdated.addListener(listener);
+            });
+        }
+
+        // 3. Keep waiting a bit if it was just opened or found to ensure JS is ready
+        // (sometimes 'complete' fires before all scripts run)
         // Check if tab is valid
-        if (!tab || !tab.id) {
-            alert('Error: No se pudo identificar la pestaña activa.');
+        if (!targetTab || !targetTab.id) {
+            alert('Error: No se pudo conectar con la pestaña de Patata.');
             return;
         }
 
-        // Execute script
+        // 4. Inject script
         const result = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: (titleStr, descStr, categoryStr) => {
-                // Ensure we are in the context of the Patata app
-                if (!window.STATE || !window.STATE.ideas) {
-                    return { success: false, error: 'No se encontró el tablero en esta página. Asegúrate de estar en la página de Patata (index.html).' };
-                }
+            target: { tabId: targetTab.id },
+            func: (ideaData) => {
+                const STATE_KEY = 'ideaBoardData';
+                let currentState = { ideas: [], theme: 'dark', isSharedSession: false };
 
                 try {
-                    const newIdea = {
-                        id: Date.now().toString(),
-                        title: titleStr,
-                        description: descStr,
-                        status: 'progress',
-                        category: categoryStr, // Use passed category
-                        image: null,
-                        createdAt: new Date().toISOString()
-                    };
-
-                    window.STATE.ideas.push(newIdea);
-
-                    if (window.saveState) {
-                        window.saveState();
-                        if (window.renderBoard) window.renderBoard(); // Update UI if page is visible
+                    const stored = localStorage.getItem(STATE_KEY);
+                    if (stored) {
+                        currentState = JSON.parse(stored);
                     }
-                    return { success: true };
                 } catch (e) {
-                    return { success: false, error: e.toString() };
+                    console.error('Error reading localStorage:', e);
                 }
+
+                if (!currentState.ideas || !Array.isArray(currentState.ideas)) {
+                    currentState.ideas = [];
+                }
+
+                currentState.ideas.push(ideaData);
+
+                localStorage.setItem(STATE_KEY, JSON.stringify(currentState));
+
+                // If the page is currently running logic (window.STATE), update it too
+                if (window.STATE) {
+                    window.STATE.ideas = currentState.ideas;
+                    if (window.renderBoard) {
+                        window.renderBoard();
+                    }
+                }
+
+                return { success: true };
             },
-            args: [title, desc, category]
+            args: [newIdea]
         });
 
-        // Handle result
-        if (result && result[0]) {
-            const response = result[0].result;
-            if (response && response.success) {
-                window.close();
-            } else {
-                alert(response.error || 'Error desconocido al procesar la idea.');
-            }
+        if (result && result[0] && result[0].result && result[0].result.success) {
+            window.close(); // Close popup on success
+        } else {
+            alert('Hubo un error al guardar la idea. Intenta de nuevo.');
         }
 
     } catch (err) {
         console.error(err);
-        // This catch block handles the "Cannot access contents of page" error (permissions)
-        const msg = err.message || err.toString();
-
-        if (msg.includes('Cannot access contents of the page') || msg.includes('access to file URLs')) {
-            alert('ERROR DE PERMISOS:\n\nChrome impide que la extensión acceda a esta página de archivo local.\n\nSOLUCIÓN:\n1. Ve a chrome://extensions\n2. Busca "Patata Quick Idea Creator"\n3. Activa "Permitir acceso a URLs de archivo" (Allow access to file URLs).\n4. Recarga esta página y prueba de nuevo.');
-        } else {
-            alert('Error de conexión con la página:\n' + msg);
-        }
+        alert('Error: ' + err.toString());
     }
 });

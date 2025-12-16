@@ -5,7 +5,8 @@
     "description": "Add a button to the Patata page to create ideas quickly without showing the board.",
     "permissions": [
         "activeTab",
-        "scripting"
+        "scripting",
+        "tabs"
     ],
     "host_permissions": [
         "<all_urls>"
