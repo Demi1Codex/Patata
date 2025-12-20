@@ -17,7 +17,7 @@ const STATE = {
 
 // Google Config (User needs to replace this Client ID)
 const GOOGLE_CONFIG = {
-    CLIENT_ID: '698511203920-idpjgq19kec7hjivcrtmkrd9nnn908n6.apps.googleusercontent.com',
+    CLIENT_ID: '698511203920-idpjgq19kec7hjivcrtmkrd9nnn908n6.apps.googleusercontent.comple',
     SCOPES: 'https://www.googleapis.com/auth/calendar.readonly'
 };
 

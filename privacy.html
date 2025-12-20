@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Política de Privacidad - Borrachos.docx</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .privacy-container {
+            max-width: 800px;
+            margin: 4rem auto;
+            padding: 2.5rem;
+            background-color: var(--surface-color);
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--card-shadow);
+        }
+
+        .privacy-content h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, var(--accent-color), #06B6D4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .last-update {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        .privacy-content h2 {
+            font-size: 1.25rem;
+            color: var(--accent-color);
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .privacy-content p,
+        .privacy-content li {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 1rem;
+        }
+
+        .privacy-content ul {
+            margin-left: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--accent-color);
+            text-decoration: none;
+            margin-bottom: 2rem;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        .back-link:hover {
+            opacity: 0.8;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <a href="index.html" style="text-decoration: none; display: flex; align-items: center;">
+            <img src="palpueblo.png" alt="Logo" class="logo">
+            <h1 style="margin: 0;">Borrachos.docx</h1>
+        </a>
+    </header>
+
+    <main class="container">
+        <div class="privacy-container">
+            <a href="index.html" class="back-link">← Volver al Tablero</a>
+
+            <div class="privacy-content">
+                <h1>Política de Privacidad y Protección de Datos - Patata</h1>
+                <p class="last-update">Última actualización: 20 de diciembre de 2024</p>
+
+                <p>En Patata (<a href="https://demi1codex.github.io/Patata/"
+                        style="color: var(--accent-color);">https://demi1codex.github.io/Patata/</a>), la privacidad de
+                    nuestros usuarios es una prioridad. Este documento describe cómo recopilamos, usamos y protegemos su
+                    información, especialmente en relación con la integración de los servicios de Google.</p>
+
+                <h2>1. Información que recopilamos</h2>
+                <p>Patata es una herramienta diseñada para la gestión de eventos y organización personal. Para funcionar
+                    correctamente, la aplicación solicita acceso a su cuenta de Google a través de los servicios de
+                    OAuth2. Solo recopilamos la información estrictamente necesaria para la operatividad de la
+                    herramienta.</p>
+
+                <h2>2. Uso de Google Calendar y Permisos</h2>
+                <p>Nuestra aplicación utiliza la API de Google Calendar para permitir una sincronización bidireccional
+                    de sus actividades. Al utilizar Patata, usted otorga el siguiente permiso:</p>
+                <p><em>Ver, editar, compartir y eliminar permanentemente todos los calendarios a los que puedes acceder
+                        mediante Google Calendar.</em></p>
+
+                <p><strong>Reafirmación del uso:</strong></p>
+                <ul>
+                    <li><strong>Lectura:</strong> Patata accede a sus eventos existentes para mostrarlos dentro de
+                        nuestra interfaz y ayudarle a evitar conflictos de horario.</li>
+                    <li><strong>Escritura/Edición:</strong> La aplicación permite crear nuevos eventos o modificar los
+                        existentes directamente desde nuestra plataforma para facilitar su flujo de trabajo.</li>
+                    <li><strong>Gestión:</strong> El permiso de "eliminar" se requiere técnicamente para permitirle
+                        borrar eventos que usted mismo decida descartar a través de nuestra interfaz.</li>
+                </ul>
+
+                <h2>3. Almacenamiento y Seguridad de Datos</h2>
+                <ul>
+                    <li><strong>Acceso limitado:</strong> Patata no almacena una copia de su base de datos de Google
+                        Calendar en servidores externos de forma permanente. La interacción ocurre principalmente en el
+                        lado del cliente (browser) o mediante llamadas directas a la API de Google.</li>
+                    <li><strong>Tokens de acceso:</strong> Los tokens de acceso proporcionados por Google se manejan de
+                        forma segura y se utilizan exclusivamente para autenticar sus solicitudes durante la sesión de
+                        uso.</li>
+                    <li><strong>No comercialización:</strong> Bajo ninguna circunstancia vendemos, alquilamos ni
+                        compartimos sus datos de calendario con terceros ni con empresas de publicidad.</li>
+                </ul>
+
+                <h2>4. Limitación de Uso (Política de Datos de Usuario de Google)</h2>
+                <p>El uso y la transferencia de la información recibida de las APIs de Google por parte de Patata se
+                    adherirán a la Política de Datos de Usuario de los Servicios de API de Google, incluidos los
+                    requisitos de Uso Limitado. Solo utilizamos los datos para proporcionar o mejorar las funciones que
+                    son prominentes en la interfaz de usuario de nuestra aplicación.</p>
+
+                <h2>5. Control del Usuario</h2>
+                <p>Usted tiene el control total sobre sus datos:</p>
+                <ul>
+                    <li>Puede revocar el acceso de Patata a su cuenta de Google en cualquier momento a través de la
+                        Configuración de Seguridad de su Cuenta de Google.</li>
+                    <li>Al revocar el acceso, Patata dejará de tener capacidad para leer o modificar sus calendarios de
+                        forma inmediata.</li>
+                </ul>
+
+                <h2>6. Contacto</h2>
+                <p>Si tiene preguntas sobre esta política o sobre cómo manejamos sus datos, puede contactarnos a través
+                    del repositorio oficial en GitHub o mediante los canales de contacto habilitados en la web.</p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        &copy; 2024 Patata Application. Todos los derechos reservados.
+    </footer>
+
+    <script>
+        // Apply theme from localStorage if available
+        const theme = localStorage.getItem('ideaBoardData') ? JSON.parse(localStorage.getItem('ideaBoardData')).theme : 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+    </script>
+</body>
+
+</html>
