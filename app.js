@@ -9,7 +9,16 @@ const STATE = {
     theme: 'dark',
     currentCategory: 'all',
     isSharedSession: false,
-    sessionPassword: null // Stores password in memory for current session
+    sessionPassword: null, // Stores password in memory for current session
+    googleToken: null,
+    calendarEvents: [],
+    lastCheckedEvent: null
+};
+
+// Google Config (User needs to replace this Client ID)
+const GOOGLE_CONFIG = {
+    CLIENT_ID: '698511203920-idpjgq19kec7hjivcrtmkrd9nnn908n6.apps.googleusercontent.com',
+    SCOPES: 'https://www.googleapis.com/auth/calendar.readonly'
 };
 
 // DOM Elements
@@ -22,12 +31,19 @@ const elements = {
     progressList: document.getElementById('progressList'),
     pausedList: document.getElementById('pausedList'),
     imageInput: document.getElementById('ideaImage'),
-    imagePreview: document.getElementById('imagePreview'),
-    imagePreview: document.getElementById('imagePreview'),
     categoryList: document.getElementById('categoryFilterList'),
     shareBtn: document.getElementById('shareBtn'),
     openSharedBtn: document.getElementById('openSharedBtn'),
-    sharedFileInput: document.getElementById('sharedFileInput')
+    sharedFileInput: document.getElementById('sharedFileInput'),
+    // New Elements
+    calendarBtn: document.getElementById('calendarBtn'),
+    calendarModal: document.getElementById('calendarModal'),
+    googleLoginBtn: document.getElementById('googleLoginBtn'),
+    requestNotifyBtn: document.getElementById('requestNotifyBtn'),
+    notificationContainer: document.getElementById('notificationContainer'),
+    calendarEventsList: document.getElementById('calendarEvents'),
+    googleLoginSection: document.getElementById('googleLoginSection'),
+    eventsContainer: document.getElementById('eventsContainer')
 };
 
 // --- Initialization ---
@@ -36,8 +52,20 @@ async function init() {
     await loadState();
     applyTheme();
     updateShareButtonsText();
+    updateCalendarButtonText();
     renderBoard();
     setupEventListeners();
+
+    // Check for Google Token in storage
+    const savedToken = localStorage.getItem('googleToken');
+    if (savedToken) {
+        STATE.googleToken = savedToken;
+        updateCalendarUI(true);
+        fetchCalendarEvents();
+    }
+
+    // Start background event checker (every 1 minute)
+    setInterval(checkUpcomingEvents, 60000);
 
     // Update UI if we loaded a shared session
     if (STATE.isSharedSession) {
@@ -49,6 +77,176 @@ async function init() {
         }
     }
 }
+
+// --- Calendar & Notifications Logic ---
+
+let googleTokenClient;
+
+function openCalendar() {
+    elements.calendarModal.classList.add('open');
+    if (STATE.googleToken) {
+        fetchCalendarEvents();
+    }
+}
+
+window.closeCalendar = function () {
+    elements.calendarModal.classList.remove('open');
+};
+
+function updateCalendarButtonText() {
+    if (!elements.calendarBtn) return;
+    const isMobile = window.innerWidth <= 900;
+    elements.calendarBtn.innerText = isMobile ? '📅' : '📅 Calendario';
+}
+
+function handleGoogleLogin() {
+    if (!googleTokenClient) {
+        googleTokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CONFIG.CLIENT_ID,
+            scope: GOOGLE_CONFIG.SCOPES,
+            callback: (response) => {
+                if (response.access_token) {
+                    STATE.googleToken = response.access_token;
+                    localStorage.setItem('googleToken', STATE.googleToken);
+                    updateCalendarUI(true);
+                    fetchCalendarEvents();
+                    showToast('Sincronizado con Google exitosamente');
+                }
+            },
+        });
+    }
+    googleTokenClient.requestAccessToken();
+}
+
+window.logoutGoogle = function () {
+    STATE.googleToken = null;
+    localStorage.removeItem('googleToken');
+    updateCalendarUI(false);
+    showToast('Sesión de Google cerrada');
+};
+
+function updateCalendarUI(isLoggedIn) {
+    if (isLoggedIn) {
+        elements.googleLoginSection.style.display = 'none';
+        elements.calendarEventsList.style.display = 'block';
+    } else {
+        elements.googleLoginSection.style.display = 'block';
+        elements.calendarEventsList.style.display = 'none';
+        elements.eventsContainer.innerHTML = '';
+    }
+}
+
+async function fetchCalendarEvents() {
+    if (!STATE.googleToken) return;
+
+    try {
+        const now = new Date().toISOString();
+        const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=10&orderBy=startTime&singleEvents=true`, {
+            headers: { 'Authorization': `Bearer ${STATE.googleToken}` }
+        });
+
+        if (response.status === 401) {
+            // Token expired
+            logoutGoogle();
+            return;
+        }
+
+        const data = await response.json();
+        STATE.calendarEvents = data.items || [];
+        renderCalendarEvents();
+        checkUpcomingEvents();
+    } catch (error) {
+        console.error('Error fetching events:', error);
+    }
+}
+
+function renderCalendarEvents() {
+    if (!elements.eventsContainer) return;
+
+    if (STATE.calendarEvents.length === 0) {
+        elements.eventsContainer.innerHTML = '<p class="empty-state">No hay eventos próximos.</p>';
+        return;
+    }
+
+    elements.eventsContainer.innerHTML = STATE.calendarEvents.map(event => {
+        const start = event.start.dateTime || event.start.date;
+        const date = new Date(start).toLocaleString();
+        return `
+            <div class="event-item">
+                <div class="event-time">${date}</div>
+                <div class="event-title">${escapeHtml(event.summary)}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+function requestNotificationPermission() {
+    if (!("Notification" in window)) {
+        alert("Este navegador no soporta notificaciones de escritorio.");
+        return;
+    }
+
+    Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+            showToast('¡Notificaciones activadas!');
+            showNotification('Patata', 'Ahora recibirás avisos de tus eventos aquí.');
+        }
+    });
+}
+
+function showToast(message, title = 'Info') {
+    const toast = document.createElement('div');
+    toast.className = 'notification-toast';
+    toast.innerHTML = `
+        <div class="notify-icon">🔔</div>
+        <div class="notify-body">
+            <div class="notify-header">${title}</div>
+            <div class="notify-msg">${message}</div>
+        </div>
+    `;
+
+    elements.notificationContainer.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
+}
+
+function showNotification(title, message) {
+    // In-page notification
+    showToast(message, title);
+
+    // System notification
+    if (Notification.permission === "granted") {
+        new Notification(title, {
+            body: message,
+            icon: 'palpueblo.png'
+        });
+    }
+}
+
+function checkUpcomingEvents() {
+    if (STATE.calendarEvents.length === 0) return;
+
+    const now = new Date();
+    const imminentEvents = STATE.calendarEvents.filter(event => {
+        const start = new Date(event.start.dateTime || event.start.date);
+        const diffMinutes = (start - now) / (1000 * 60);
+        // Notify if event is in the next 5 minutes and we haven't notified for this specific one recently
+        return diffMinutes > 0 && diffMinutes <= 5;
+    });
+
+    imminentEvents.forEach(event => {
+        const eventKey = `notified_${event.id}`;
+        if (!sessionStorage.getItem(eventKey)) {
+            showNotification('Evento Próximo', `${event.summary} comienza pronto.`);
+            sessionStorage.setItem(eventKey, 'true');
+        }
+    });
+}
+
 
 // --- Data Persistence ---
 
@@ -338,10 +536,9 @@ function setupEventListeners() {
 
     // Category Filter Listeners
     if (elements.categoryList) {
-        elements.categoryList.addEventListener('click', (e) => {
-            if (e.target.classList.contains('category-btn')) {
-                const category = e.target.getAttribute('data-category');
-                setCategory(category);
+        elements.categoryList.addEventListener('change', (e) => {
+            if (e.target.name === 'category') {
+                setCategory(e.target.value);
             }
         });
     }
@@ -350,25 +547,29 @@ function setupEventListeners() {
     if (elements.openSharedBtn) elements.openSharedBtn.addEventListener('click', () => elements.sharedFileInput.click());
     if (elements.sharedFileInput) elements.sharedFileInput.addEventListener('change', handleOpenSharedBoard);
 
+    // New Listeners
+    if (elements.calendarBtn) elements.calendarBtn.addEventListener('click', openCalendar);
+    if (elements.googleLoginBtn) elements.googleLoginBtn.addEventListener('click', handleGoogleLogin);
+    if (elements.requestNotifyBtn) elements.requestNotifyBtn.addEventListener('click', requestNotificationPermission);
+
+    elements.calendarModal.addEventListener('click', (e) => {
+        if (e.target === elements.calendarModal) closeCalendar();
+    });
+
     // Update button text on window resize
     window.addEventListener('resize', () => {
         updateThemeButtonText();
         updateShareButtonsText();
+        updateCalendarButtonText();
     });
 }
 
 function setCategory(category) {
     STATE.currentCategory = category;
 
-    // Update UI active state
-    const buttons = document.querySelectorAll('.category-btn');
-    buttons.forEach(btn => {
-        if (btn.getAttribute('data-category') === category) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
-    });
+    // Update UI active state (radio button)
+    const radio = document.querySelector(`input[name="category"][value="${category}"]`);
+    if (radio) radio.checked = true;
 
     renderBoard();
 }
