@@ -1,6 +1,7 @@
 /**
  * App Logic for Idea Board
  * Handles theme toggling, data persistence, and UI rendering.
+ * Now includes local calendar support and notifications.
  */
 
 // State Management
@@ -9,16 +10,7 @@ const STATE = {
     theme: 'dark',
     currentCategory: 'all',
     isSharedSession: false,
-    sessionPassword: null, // Stores password in memory for current session
-    googleToken: null,
-    calendarEvents: [],
-    lastCheckedEvent: null
-};
-
-// Google Config (User needs to replace this Client ID)
-const GOOGLE_CONFIG = {
-    CLIENT_ID: '698511203920-idpjgq19kec7hjivcrtmkrd9nnn908n6.apps.googleusercontent.comple',
-    SCOPES: 'https://www.googleapis.com/auth/calendar.readonly'
+    sessionPassword: null,
 };
 
 // DOM Elements
@@ -35,14 +27,11 @@ const elements = {
     shareBtn: document.getElementById('shareBtn'),
     openSharedBtn: document.getElementById('openSharedBtn'),
     sharedFileInput: document.getElementById('sharedFileInput'),
-    // New Elements
+    // Calendar & Notifications Elements
     calendarBtn: document.getElementById('calendarBtn'),
     calendarModal: document.getElementById('calendarModal'),
-    googleLoginBtn: document.getElementById('googleLoginBtn'),
     requestNotifyBtn: document.getElementById('requestNotifyBtn'),
     notificationContainer: document.getElementById('notificationContainer'),
-    calendarEventsList: document.getElementById('calendarEvents'),
-    googleLoginSection: document.getElementById('googleLoginSection'),
     eventsContainer: document.getElementById('eventsContainer')
 };
 
@@ -56,16 +45,8 @@ async function init() {
     renderBoard();
     setupEventListeners();
 
-    // Check for Google Token in storage
-    const savedToken = localStorage.getItem('googleToken');
-    if (savedToken) {
-        STATE.googleToken = savedToken;
-        updateCalendarUI(true);
-        fetchCalendarEvents();
-    }
-
-    // Start background event checker (every 1 minute)
-    setInterval(checkUpcomingEvents, 60000);
+    // Start background event checker (every 1 second for precision)
+    setInterval(checkUpcomingEvents, 1000);
 
     // Update UI if we loaded a shared session
     if (STATE.isSharedSession) {
@@ -78,15 +59,11 @@ async function init() {
     }
 }
 
-// --- Calendar & Notifications Logic ---
-
-let googleTokenClient;
+// --- Local Calendar & Notifications Logic ---
 
 function openCalendar() {
     elements.calendarModal.classList.add('open');
-    if (STATE.googleToken) {
-        fetchCalendarEvents();
-    }
+    renderCalendarEvents();
 }
 
 window.closeCalendar = function () {
@@ -99,85 +76,75 @@ function updateCalendarButtonText() {
     elements.calendarBtn.innerText = isMobile ? '📅' : '📅 Calendario';
 }
 
-function handleGoogleLogin() {
-    if (!googleTokenClient) {
-        googleTokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: GOOGLE_CONFIG.CLIENT_ID,
-            scope: GOOGLE_CONFIG.SCOPES,
-            callback: (response) => {
-                if (response.access_token) {
-                    STATE.googleToken = response.access_token;
-                    localStorage.setItem('googleToken', STATE.googleToken);
-                    updateCalendarUI(true);
-                    fetchCalendarEvents();
-                    showToast('Sincronizado con Google exitosamente');
-                }
-            },
-        });
-    }
-    googleTokenClient.requestAccessToken();
-}
-
-window.logoutGoogle = function () {
-    STATE.googleToken = null;
-    localStorage.removeItem('googleToken');
-    updateCalendarUI(false);
-    showToast('Sesión de Google cerrada');
-};
-
-function updateCalendarUI(isLoggedIn) {
-    if (isLoggedIn) {
-        elements.googleLoginSection.style.display = 'none';
-        elements.calendarEventsList.style.display = 'block';
-    } else {
-        elements.googleLoginSection.style.display = 'block';
-        elements.calendarEventsList.style.display = 'none';
-        elements.eventsContainer.innerHTML = '';
-    }
-}
-
-async function fetchCalendarEvents() {
-    if (!STATE.googleToken) return;
-
-    try {
-        const now = new Date().toISOString();
-        const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&maxResults=10&orderBy=startTime&singleEvents=true`, {
-            headers: { 'Authorization': `Bearer ${STATE.googleToken}` }
-        });
-
-        if (response.status === 401) {
-            // Token expired
-            logoutGoogle();
-            return;
-        }
-
-        const data = await response.json();
-        STATE.calendarEvents = data.items || [];
-        renderCalendarEvents();
-        checkUpcomingEvents();
-    } catch (error) {
-        console.error('Error fetching events:', error);
-    }
-}
-
 function renderCalendarEvents() {
     if (!elements.eventsContainer) return;
 
-    if (STATE.calendarEvents.length === 0) {
-        elements.eventsContainer.innerHTML = '<p class="empty-state">No hay eventos próximos.</p>';
+    const datedIdeas = STATE.ideas
+        .filter(idea => idea.date)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    if (datedIdeas.length === 0) {
+        elements.eventsContainer.innerHTML = '<div class="empty-state">No hay eventos programados en tus ideas.</div>';
         return;
     }
 
-    elements.eventsContainer.innerHTML = STATE.calendarEvents.map(event => {
-        const start = event.start.dateTime || event.start.date;
-        const date = new Date(start).toLocaleString();
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const groups = {
+        past: [],
+        today: [],
+        tomorrow: [],
+        future: []
+    };
+
+    datedIdeas.forEach(idea => {
+        const d = new Date(idea.date);
+        const ideaDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+        if (ideaDate < today) groups.past.push(idea);
+        else if (ideaDate.getTime() === today.getTime()) groups.today.push(idea);
+        else if (ideaDate.getTime() === tomorrow.getTime()) groups.tomorrow.push(idea);
+        else groups.future.push(idea);
+    });
+
+    const renderGroup = (title, list) => {
+        if (list.length === 0) return '';
         return `
-            <div class="event-item">
-                <div class="event-time">${date}</div>
-                <div class="event-title">${escapeHtml(event.summary)}</div>
+            <div class="calendar-group">
+                <div class="group-title">${title}</div>
+                ${list.map(idea => {
+            const time = new Date(idea.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const date = new Date(idea.date).toLocaleDateString([], { day: 'numeric', month: 'short' });
+            return `
+                        <div class="event-item">
+                            <div class="event-time-badge">
+                                <span class="time">${time}</span>
+                                <span class="date">${date}</span>
+                            </div>
+                            <div class="event-details">
+                                <div class="event-title">${escapeHtml(idea.title)}</div>
+                                <div class="event-meta">
+                                    <span class="category">${escapeHtml(idea.category)}</span>
+                                    <span class="notify-icon">${idea.notify === 'true' ? '🔔 On' : '🔕 Off'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+        }).join('')}
             </div>
         `;
-    }).join('');
+    };
+
+    elements.eventsContainer.innerHTML = `
+        <div class="calendar-header-info">📅 Listado de tareas programadas</div>
+        ${renderGroup('Hoy', groups.today)}
+        ${renderGroup('Mañana', groups.tomorrow)}
+        ${renderGroup('Próximamente', groups.future)}
+        ${renderGroup('Pasadas', groups.past)}
+    `;
 }
 
 function requestNotificationPermission() {
@@ -189,19 +156,37 @@ function requestNotificationPermission() {
     Notification.requestPermission().then(permission => {
         if (permission === "granted") {
             showToast('¡Notificaciones activadas!');
-            showNotification('Patata', 'Ahora recibirás avisos de tus eventos aquí.');
+            showNotification('Borrachos.docx', 'Ahora recibirás avisos de tus eventos locales aquí.');
         }
     });
 }
 
-function showToast(message, title = 'Info') {
+function showNotification(title, message, description = '', date = '') {
+    // Format full message for toast and system notification
+    const fullMessage = `${message}${description ? '\n' + description : ''}${date ? '\n📅 ' + date : ''}`;
+
+    // In-page notification (Toast)
+    showToast(message, title, description, date);
+
+    // System notification
+    if (Notification.permission === "granted") {
+        new Notification(title, {
+            body: `${description}\n📅 ${date}`,
+            icon: 'palpueblo.png'
+        });
+    }
+}
+
+function showToast(message, title = 'Info', description = '', date = '') {
     const toast = document.createElement('div');
     toast.className = 'notification-toast';
     toast.innerHTML = `
         <div class="notify-icon">🔔</div>
         <div class="notify-body">
             <div class="notify-header">${title}</div>
-            <div class="notify-msg">${message}</div>
+            <div class="notify-msg" style="font-weight: 600;">${message}</div>
+            ${description ? `<div class="notify-msg" style="font-size: 0.8rem; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 4px;">${escapeHtml(description)}</div>` : ''}
+            ${date ? `<div class="notify-msg" style="font-size: 0.75rem; color: var(--accent-color); font-weight: 700;">📅 ${date}</div>` : ''}
         </div>
     `;
 
@@ -211,42 +196,32 @@ function showToast(message, title = 'Info') {
         toast.style.opacity = '0';
         toast.style.transform = 'translateY(20px)';
         setTimeout(() => toast.remove(), 300);
-    }, 5000);
-}
-
-function showNotification(title, message) {
-    // In-page notification
-    showToast(message, title);
-
-    // System notification
-    if (Notification.permission === "granted") {
-        new Notification(title, {
-            body: message,
-            icon: 'palpueblo.png'
-        });
-    }
+    }, 8000); // Increased time to 8s so users can read the description
 }
 
 function checkUpcomingEvents() {
-    if (STATE.calendarEvents.length === 0) return;
-
     const now = new Date();
-    const imminentEvents = STATE.calendarEvents.filter(event => {
-        const start = new Date(event.start.dateTime || event.start.date);
-        const diffMinutes = (start - now) / (1000 * 60);
-        // Notify if event is in the next 5 minutes and we haven't notified for this specific one recently
-        return diffMinutes > 0 && diffMinutes <= 5;
-    });
+    // Use a small window (e.g. 2 seconds) to avoid missing if the interval drifts slightly
+    // but sessionStorage will prevent duplicates within that window.
 
-    imminentEvents.forEach(event => {
-        const eventKey = `notified_${event.id}`;
-        if (!sessionStorage.getItem(eventKey)) {
-            showNotification('Evento Próximo', `${event.summary} comienza pronto.`);
-            sessionStorage.setItem(eventKey, 'true');
+    STATE.ideas.forEach(idea => {
+        if (!idea.date || idea.notify !== 'true') return;
+
+        const targetDate = new Date(idea.date);
+        const diffMs = targetDate.getTime() - now.getTime();
+
+        // Trigger if we are within 2 seconds of the event time (exact enough)
+        // and we haven't notified for this specific one in this session.
+        if (diffMs <= 0 && diffMs > -5000) { // If it passed in the last 5 seconds
+            const eventKey = `notified_exact_${idea.id}`;
+            if (!sessionStorage.getItem(eventKey)) {
+                const dateStr = targetDate.toLocaleString();
+                showNotification('¡Es Hora! ' + idea.title, 'Tu idea programada ya llegó:', idea.description, dateStr);
+                sessionStorage.setItem(eventKey, 'true');
+            }
         }
     });
 }
-
 
 // --- Data Persistence ---
 
@@ -257,7 +232,6 @@ async function loadState() {
         STATE.theme = parsed.theme || 'dark';
 
         if (parsed.isSharedSession && parsed.encryptedData) {
-            // Locked session found
             const password = prompt("🔒 Tablero Protegido. Introduce la contraseña para restaurar la sesión:");
             if (password) {
                 try {
@@ -270,7 +244,7 @@ async function loadState() {
                     alert("Contraseña incorrecta. No se puede acceder al tablero protegido.");
                     STATE.ideas = [];
                 }
-            } // If cancelled, ideas remains empty
+            }
         } else {
             STATE.ideas = parsed.ideas || [];
         }
@@ -281,7 +255,6 @@ async function saveState() {
     if (STATE.isSharedSession) {
         if (STATE.sessionPassword) {
             try {
-                // Determine what to encrypt
                 const encryptedString = await encryptData(STATE.ideas, STATE.sessionPassword);
                 const payload = {
                     theme: STATE.theme,
@@ -289,17 +262,12 @@ async function saveState() {
                     encryptedData: encryptedString
                 };
                 localStorage.setItem('ideaBoardData', JSON.stringify(payload));
-                console.log('Shared board state saved encrypted.');
             } catch (e) {
                 console.error("Error saving shared state:", e);
             }
-        } else {
-            console.warn('Shared session active but no password. Skipping save.');
         }
         return;
     }
-
-    // Normal save
     localStorage.setItem('ideaBoardData', JSON.stringify(STATE));
 }
 
@@ -312,11 +280,9 @@ function applyTheme() {
 
 function updateThemeButtonText() {
     if (!elements.themeToggle) return;
-
     const isMobile = window.innerWidth <= 900;
     const iconOnly = STATE.theme === 'dark' ? '☀️' : '🌙';
     const iconWithText = STATE.theme === 'dark' ? '☀️ Light' : '🌙 Dark';
-
     elements.themeToggle.innerText = isMobile ? iconOnly : iconWithText;
     elements.themeToggle.setAttribute('aria-label', STATE.theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
 }
@@ -329,26 +295,16 @@ function toggleTheme() {
 
 function updateShareButtonsText() {
     const isMobile = window.innerWidth <= 900;
-
-    if (elements.shareBtn) {
-        elements.shareBtn.innerText = isMobile ? '📤' : '📤 Compartir';
-        elements.shareBtn.setAttribute('aria-label', 'Compartir Tablero');
-    }
-
-    if (elements.openSharedBtn) {
-        elements.openSharedBtn.innerText = isMobile ? '📂' : '📂 Abrir';
-        elements.openSharedBtn.setAttribute('aria-label', 'Abrir Tablero Compartido');
-    }
+    if (elements.shareBtn) elements.shareBtn.innerText = isMobile ? '📤' : '📤 Compartir';
+    if (elements.openSharedBtn) elements.openSharedBtn.innerText = isMobile ? '📂' : '📂 Abrir';
 }
 
 // --- Board Rendering ---
 
 function renderBoard() {
-    // Clear lists
     elements.progressList.innerHTML = '';
     elements.pausedList.innerHTML = '';
 
-    // Filter ideas based on current category
     const filteredIdeas = STATE.ideas.filter(idea => {
         if (STATE.currentCategory === 'all') return true;
         return idea.category === STATE.currentCategory;
@@ -372,22 +328,18 @@ function createIdeaCard(idea) {
     div.id = idea.id;
 
     const imageHtml = idea.image ? `<img src="${idea.image}" class="card-image" alt="Idea attachment">` : '';
+    const dateHtml = idea.date ? `<div class="event-time" style="font-size: 0.75rem; margin-top: 0.5rem;">📅 ${new Date(idea.date).toLocaleString()} ${idea.notify === 'true' ? '🔔' : ''}</div>` : '';
 
     div.innerHTML = `
         ${imageHtml}
         <div class="category-badge">${escapeHtml(idea.category || 'General')}</div>
         <div class="card-title">${escapeHtml(idea.title)}</div>
         <p class="card-desc">${escapeHtml(idea.description)}</p>
+        ${dateHtml}
         <div class="card-actions">
-            <button class="btn-icon" onclick="deleteIdea('${idea.id}')" title="Delete">
-                🗑️
-            </button>
-            <button class="btn-icon" onclick="editIdea('${idea.id}')" title="Edit">
-                ✏️
-            </button>
-            <button class="btn-icon" onclick="toggleStatus('${idea.id}')" title="Move to ${idea.status === 'progress' ? 'Paused' : 'Progress'}">
-                ⇄
-            </button>
+            <button class="btn-icon" onclick="deleteIdea('${idea.id}')" title="Delete">🗑️</button>
+            <button class="btn-icon" onclick="editIdea('${idea.id}')" title="Edit">✏️</button>
+            <button class="btn-icon" onclick="toggleStatus('${idea.id}')" title="Move">⇄</button>
         </div>
     `;
     return div;
@@ -405,11 +357,8 @@ function escapeHtml(text) {
 
 function updateCounts(ideas) {
     const list = ideas || STATE.ideas;
-    const progressCount = list.filter(i => i.status === 'progress').length;
-    const pausedCount = list.filter(i => i.status === 'paused').length;
-
-    document.getElementById('progressCount').innerText = progressCount;
-    document.getElementById('pausedCount').innerText = pausedCount;
+    document.getElementById('progressCount').innerText = list.filter(i => i.status === 'progress').length;
+    document.getElementById('pausedCount').innerText = list.filter(i => i.status === 'paused').length;
 }
 
 // --- Item Management ---
@@ -422,9 +371,10 @@ function addIdea(e) {
     const description = document.getElementById('ideaDesc').value;
     const status = document.getElementById('ideaStatus').value;
     const category = document.getElementById('ideaCategory').value;
-    const imageFile = document.getElementById('ideaImage').files[0];
+    const date = document.getElementById('ideaDate').value;
+    const notify = document.getElementById('ideaNotify').value;
+    const imageFile = elements.imageInput ? elements.imageInput.files[0] : null;
 
-    // If ID exists, we are updating. get existing idea to preserve properties like image if not changed
     let existingIdea = id ? STATE.ideas.find(i => i.id === id) : null;
 
     const ideaData = {
@@ -433,14 +383,16 @@ function addIdea(e) {
         description,
         status,
         category,
-        image: existingIdea ? existingIdea.image : null, // Default to existing
+        date,
+        notify,
+        image: existingIdea ? existingIdea.image : null,
         createdAt: existingIdea ? existingIdea.createdAt : new Date().toISOString()
     };
 
     if (imageFile) {
         const reader = new FileReader();
         reader.onload = function (event) {
-            ideaData.image = event.target.result; // Update image
+            ideaData.image = event.target.result;
             saveIdeaAndClose(ideaData, !!id);
         };
         reader.readAsDataURL(imageFile);
@@ -456,17 +408,13 @@ function saveIdeaAndClose(idea, isUpdate) {
     } else {
         STATE.ideas.push(idea);
     }
-
     saveState();
     renderBoard();
     closeModal();
-    resetForm();
 }
 
-// Global functions for inline onclick handlers
-// Global functions for inline onclick handlers
 window.deleteIdea = function (id) {
-    if (confirm('Are you sure you want to delete this idea?')) {
+    if (confirm('¿Eliminar idea?')) {
         STATE.ideas = STATE.ideas.filter(i => i.id !== id);
         saveState();
         renderBoard();
@@ -477,17 +425,16 @@ window.editIdea = function (id) {
     const idea = STATE.ideas.find(i => i.id === id);
     if (!idea) return;
 
-    // Populate form
     document.getElementById('ideaId').value = idea.id;
     document.getElementById('ideaTitle').value = idea.title;
     document.getElementById('ideaDesc').value = idea.description;
     document.getElementById('ideaStatus').value = idea.status;
     document.getElementById('ideaCategory').value = idea.category || 'Personal';
+    document.getElementById('ideaDate').value = idea.date || '';
+    document.getElementById('ideaNotify').value = idea.notify || 'true';
 
-    // Change Modal Title
     document.querySelector('.modal-title').innerText = 'Editar Idea';
-
-    openModal(false); // false = don't clear form
+    openModal(false);
 };
 
 window.toggleStatus = function (id) {
@@ -523,23 +470,13 @@ function resetForm() {
 function setupEventListeners() {
     elements.themeToggle.addEventListener('click', toggleTheme);
     elements.addIdeaBtn.addEventListener('click', openModal);
-
-    elements.modal.addEventListener('click', (e) => {
-        if (e.target === elements.modal) closeModal();
-    });
-
-    if (elements.cancelBtn) {
-        elements.cancelBtn.addEventListener('click', closeModal);
-    }
-
+    elements.modal.addEventListener('click', (e) => { if (e.target === elements.modal) closeModal(); });
+    if (elements.cancelBtn) elements.cancelBtn.addEventListener('click', closeModal);
     elements.ideaForm.addEventListener('submit', addIdea);
 
-    // Category Filter Listeners
     if (elements.categoryList) {
         elements.categoryList.addEventListener('change', (e) => {
-            if (e.target.name === 'category') {
-                setCategory(e.target.value);
-            }
+            if (e.target.name === 'category') setCategory(e.target.value);
         });
     }
 
@@ -547,16 +484,10 @@ function setupEventListeners() {
     if (elements.openSharedBtn) elements.openSharedBtn.addEventListener('click', () => elements.sharedFileInput.click());
     if (elements.sharedFileInput) elements.sharedFileInput.addEventListener('change', handleOpenSharedBoard);
 
-    // New Listeners
     if (elements.calendarBtn) elements.calendarBtn.addEventListener('click', openCalendar);
-    if (elements.googleLoginBtn) elements.googleLoginBtn.addEventListener('click', handleGoogleLogin);
     if (elements.requestNotifyBtn) elements.requestNotifyBtn.addEventListener('click', requestNotificationPermission);
+    elements.calendarModal.addEventListener('click', (e) => { if (e.target === elements.calendarModal) closeCalendar(); });
 
-    elements.calendarModal.addEventListener('click', (e) => {
-        if (e.target === elements.calendarModal) closeCalendar();
-    });
-
-    // Update button text on window resize
     window.addEventListener('resize', () => {
         updateThemeButtonText();
         updateShareButtonsText();
@@ -566,123 +497,17 @@ function setupEventListeners() {
 
 function setCategory(category) {
     STATE.currentCategory = category;
-
-    // Update UI active state (radio button)
     const radio = document.querySelector(`input[name="category"][value="${category}"]`);
     if (radio) radio.checked = true;
-
     renderBoard();
 }
 
-// Start
-// --- Sharing & Crypto Logic ---
-
-async function handleShareBoard() {
-    const groupIdeas = STATE.ideas.filter(idea => idea.category === 'Grupales');
-
-    if (groupIdeas.length === 0) {
-        alert('No hay ideas en la categoría "Grupales" para compartir.');
-        return;
-    }
-
-    const password = prompt('Escoge una contraseña para proteger este tablero grupal:');
-    if (!password) return;
-
-    try {
-        const encryptedData = await encryptData(groupIdeas, password);
-        downloadFile('tablero_grupales.lock', encryptedData);
-    } catch (error) {
-        console.error('Error in encryption:', error);
-        alert('Error al encriptar el tablero.');
-    }
-}
-
-async function handleOpenSharedBoard(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const password = prompt('Introduce la contraseña para abrir este tablero:');
-    if (!password) {
-        e.target.value = ''; // Reset input
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async function (event) {
-        try {
-            const encryptedContent = event.target.result;
-            const decryptedIdeas = await decryptData(encryptedContent, password);
-
-            // Verify password is correct by trying to decrypt first? 
-            // Logic is: user provides password for FILE. We use that same password for SESSION persistence.
-
-            // Allow saving of this session
-            STATE.sessionPassword = password;
-            saveState(); // Save immediately as "Shared Session" to persistence
-
-            // Success
-            loadSharedBoard(decryptedIdeas);
-        } catch (error) {
-            console.error(error);
-            alert('Contraseña incorrecta o archivo dañado.');
-        } finally {
-            e.target.value = ''; // Reset input
-        }
-    };
-    reader.readAsText(file);
-}
-
-function loadSharedBoard(ideas) {
-    STATE.ideas = ideas;
-    STATE.isSharedSession = true;
-
-    // Update UI to reflect shared state
-    document.title = "Tablero Compartido";
-    document.querySelector('header h1').innerHTML = "🔒 Tablero Compartido";
-    document.querySelector('header h1').style.color = "#F87171"; // Reddish to indicate warning/special state
-
-    // Refresh board
-    setCategory('all');
-    renderBoard();
-
-    // alert('Has abierto un tablero compartido. ¡Cuidado! Los cambios que hagas aquí NO se guardarán permanentemente.');
-}
-
-function downloadFile(filename, content) {
-    const blob = new Blob([content], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-// --- Crypto Helpers (Web Crypto API) ---
+// --- Crypto Helpers ---
 
 async function deriveKey(password, salt) {
     const enc = new TextEncoder();
-    const keyMaterial = await window.crypto.subtle.importKey(
-        "raw",
-        enc.encode(password),
-        { name: "PBKDF2" },
-        false,
-        ["deriveKey"]
-    );
-    return window.crypto.subtle.deriveKey(
-        {
-            name: "PBKDF2",
-            salt: salt,
-            iterations: 100000,
-            hash: "SHA-256"
-        },
-        keyMaterial,
-        { name: "AES-GCM", length: 256 },
-        false,
-        ["encrypt", "decrypt"]
-    );
+    const keyMaterial = await window.crypto.subtle.importKey("raw", enc.encode(password), { name: "PBKDF2" }, false, ["deriveKey"]);
+    return window.crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" }, keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
 }
 
 async function encryptData(data, password) {
@@ -690,19 +515,8 @@ async function encryptData(data, password) {
     const salt = window.crypto.getRandomValues(new Uint8Array(16));
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
     const key = await deriveKey(password, salt);
-
-    const ciphertext = await window.crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: iv },
-        key,
-        enc.encode(JSON.stringify(data))
-    );
-
-    // Pack everything into a JSON string
-    return JSON.stringify({
-        salt: Array.from(salt),
-        iv: Array.from(iv),
-        ciphertext: Array.from(new Uint8Array(ciphertext))
-    });
+    const ciphertext = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(JSON.stringify(data)));
+    return JSON.stringify({ salt: Array.from(salt), iv: Array.from(iv), ciphertext: Array.from(new Uint8Array(ciphertext)) });
 }
 
 async function decryptData(encryptedJson, password) {
@@ -711,15 +525,45 @@ async function decryptData(encryptedJson, password) {
     const iv = new Uint8Array(data.iv);
     const ciphertext = new Uint8Array(data.ciphertext);
     const key = await deriveKey(password, salt);
+    const decrypted = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+    return JSON.parse(new TextDecoder().decode(decrypted));
+}
 
-    const decrypted = await window.crypto.subtle.decrypt(
-        { name: "AES-GCM", iv: iv },
-        key,
-        ciphertext
-    );
+async function handleShareBoard() {
+    const groupIdeas = STATE.ideas.filter(idea => idea.category === 'Grupales');
+    if (groupIdeas.length === 0) { alert('No hay ideas en la categoría "Grupales".'); return; }
+    const password = prompt('Escoge una contraseña:');
+    if (!password) return;
+    try {
+        const encryptedData = await encryptData(groupIdeas, password);
+        const blob = new Blob([encryptedData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'tablero_grupales.lock';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    } catch (e) { alert('Error al encriptar.'); }
+}
 
-    const dec = new TextDecoder();
-    return JSON.parse(dec.decode(decrypted));
+async function handleOpenSharedBoard(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const password = prompt('Introduce la contraseña:');
+    if (!password) { e.target.value = ''; return; }
+    const reader = new FileReader();
+    reader.onload = async function (event) {
+        try {
+            const decryptedIdeas = await decryptData(event.target.result, password);
+            STATE.sessionPassword = password;
+            STATE.ideas = decryptedIdeas;
+            STATE.isSharedSession = true;
+            document.title = "Tablero Compartido";
+            document.querySelector('header h1').innerHTML = "🔒 Tablero Compartido";
+            document.querySelector('header h1').style.color = "#F87171";
+            setCategory('all'); renderBoard();
+        } catch (error) { alert('Datos incorrectos.'); }
+        finally { e.target.value = ''; }
+    };
+    reader.readAsText(file);
 }
 
 document.addEventListener('DOMContentLoaded', init);

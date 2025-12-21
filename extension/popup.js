@@ -2,6 +2,8 @@ document.getElementById('create').addEventListener('click', async () => {
     const title = document.getElementById('title').value.trim();
     const desc = document.getElementById('desc').value.trim();
     const category = document.getElementById('category').value;
+    const date = document.getElementById('date').value;
+    const notify = date ? 'true' : 'false';
 
     if (!title) {
         alert('Por favor, escribe un título para la idea.');
@@ -14,6 +16,8 @@ document.getElementById('create').addEventListener('click', async () => {
         description: desc,
         status: 'progress',
         category: category,
+        date: date || null,
+        notify: notify,
         image: null,
         createdAt: new Date().toISOString()
     };
@@ -42,8 +46,6 @@ document.getElementById('create').addEventListener('click', async () => {
         }
 
         // 3. Keep waiting a bit if it was just opened or found to ensure JS is ready
-        // (sometimes 'complete' fires before all scripts run)
-        // Check if tab is valid
         if (!targetTab || !targetTab.id) {
             alert('Error: No se pudo conectar con la pestaña de Patata.');
             return;
@@ -73,7 +75,6 @@ document.getElementById('create').addEventListener('click', async () => {
 
                 localStorage.setItem(STATE_KEY, JSON.stringify(currentState));
 
-                // If the page is currently running logic (window.STATE), update it too
                 if (window.STATE) {
                     window.STATE.ideas = currentState.ideas;
                     if (window.renderBoard) {
@@ -87,7 +88,7 @@ document.getElementById('create').addEventListener('click', async () => {
         });
 
         if (result && result[0] && result[0].result && result[0].result.success) {
-            window.close(); // Close popup on success
+            window.close();
         } else {
             alert('Hubo un error al guardar la idea. Intenta de nuevo.');
         }

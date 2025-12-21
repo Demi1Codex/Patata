@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <title>Idea Rápida</title>
+    <link rel="icon" type="image/png" href="palpueblo.png">
     <style>
         :root {
             --bg-color: #121212;
@@ -104,9 +105,12 @@
 
     <textarea id="desc" rows="3" placeholder="Descripción (opcional)"></textarea>
 
+    <div style="margin-bottom: 8px; font-size: 12px; color: var(--text-secondary);">📅 Programar (opcional)</div>
+    <input id="date" type="datetime-local" />
+
     <button id="create">Añadir al Tablero</button>
 
-    <div class="note">Patata se gestionará automáticamente.</div>
+    <div class="note">Borrachos.docx se gestionará automáticamente.</div>
 
     <script src="popup.js"></script>
 </body>

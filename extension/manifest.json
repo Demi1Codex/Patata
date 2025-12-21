@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Patata Quick Idea Creator",
-    "version": "1.0",
-    "description": "Add a button to the Patata page to create ideas quickly without showing the board.",
+    "name": "Borrachos.docx Idea Rápida",
+    "version": "1.8",
+    "description": "Añade ideas rápidamente a Borrachos.docx desde cualquier página.",
     "permissions": [
         "activeTab",
         "scripting",
@@ -11,11 +11,16 @@
     "host_permissions": [
         "<all_urls>"
     ],
+    "icons": {
+        "16": "palpueblo.png",
+        "48": "palpueblo.png",
+        "128": "palpueblo.png"
+    },
     "action": {
         "default_icon": {
-            "16": "icons/icon16.png",
-            "48": "icons/icon48.png",
-            "128": "icons/icon128.png"
+            "16": "palpueblo.png",
+            "48": "palpueblo.png",
+            "128": "palpueblo.png"
         },
         "default_popup": "popup.html"
     }
